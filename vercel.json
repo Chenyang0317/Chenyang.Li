@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/tikhub/(.*)",
+      "destination": "https://api.tikhub.io/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

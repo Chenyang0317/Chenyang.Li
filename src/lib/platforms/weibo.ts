@@ -286,7 +286,9 @@ export async function fetchWeiboUserProfile(query: string): Promise<UnifiedUserP
     const res = await fetch(finalUrl, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' }});
     
     if (!res.ok) {
-        throw new Error(`微博请求失败 (${res.status})`);
+        let errText = '';
+        try { errText = await res.text(); } catch(e) {}
+        throw new Error(`微博请求失败 (${res.status}) ${errText}`);
     }
     
     const data = await res.json();

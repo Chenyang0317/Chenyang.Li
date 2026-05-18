@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UnifiedVideo, fetchVideoComments } from '../lib/platforms';
 import { Heart, MessageCircle, Bookmark, Share2, PlayCircle, FileText, Eye, X, Play, Sparkles, RotateCcw, Copy, Check } from 'lucide-react';
-import { formatNumber, cn, getProxiedAvatar } from '../lib/utils';
+import { formatNumber, cn, getProxiedAvatar, getProxiedImage } from '../lib/utils';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { analyzeVideo, analyzeMultiVideos, analyzeMultiVideoComments, VideoAnalysisResult, CommentAnalysisResult } from '../lib/gemini';
@@ -700,7 +700,7 @@ function VideoCard({
              onClick={onPlay}
            >
               {coverUrl ? (
-                <img src={coverUrl} alt="cover" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" referrerPolicy="no-referrer" />
+                <img src={platform === '抖音' ? getProxiedImage(coverUrl) : coverUrl} alt="cover" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" referrerPolicy="no-referrer" />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
                    <FileText size={24} className="opacity-20 mb-2" />

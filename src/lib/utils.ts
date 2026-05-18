@@ -64,6 +64,11 @@ export function extractBilibiliUid(input: string): string {
   return cleanInput;
 }
 
+export function getProxiedImage(url: string | undefined | null): string {
+  if (!url || !url.startsWith('http')) return url || '';
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=600&fit=cover`;
+}
+
 export function getProxiedAvatar(url: string | undefined | null, nickname?: string): string {
   if (!url || !url.startsWith('http')) {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(nickname || 'U')}&background=random&color=fff`;

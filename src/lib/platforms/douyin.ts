@@ -9,31 +9,49 @@ async function getApiKey(): Promise<string> {
     return key;
 }
 
-function extractSecUserId(input: string): string {
+async function extractSecUserId(input: string, apiKey: string): Promise<string> {
     if (!input) return '';
     let cleanInput = input.replace(/https?:\/\/[^\s]+/, '').trim();
     if (!cleanInput) cleanInput = input.trim();
     
+    // Attempt standard URL matching
     const match = cleanInput.match(/user\/([^?\/]+)/) || input.match(/user\/([^?\/]+)/);
     if (match && match[1]) return match[1];
+    
+    // Resolve short domains via API if passed a URL
+    if (cleanInput.includes('v.douyin.com')) {
+        const urlMatch = cleanInput.match(/https?:\/\/v\.douyin\.com\/[a-zA-Z0-9]+/);
+        if (urlMatch) {
+            try {
+                const res = await fetch(`/api/tikhub/api/v1/douyin/web/get_sec_user_id?url=${encodeURIComponent(urlMatch[0])}`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data?.data && typeof data.data === 'string') return data.data;
+                }
+            } catch (e) {}
+        }
+    }
     
     try {
         const url = new URL(input);
         const parts = url.pathname.split('/');
         if (parts.length >= 3 && parts[1] === 'user') return parts[2];
     } catch (e) {}
+    
     return cleanInput;
 }
 
 /**
  * 抖音数据解析器
  */
-function parseDouyinUserProfile(data: any): UnifiedUserProfile {
+function parseDouyinUserProfile(data: any, queryId: string = ''): UnifiedUserProfile {
     const user = (data.data || data).user || (data.data || data);
 
     return {
         platform: '抖音',
-        id: user.sec_uid || user.sec_user_id || '',
+        id: user.sec_uid || user.sec_user_id || user.uid || queryId,
         nickname: user.nickname || 'Unknown',
         avatar: user.avatar_larger?.url_list?.[0] || 
                 user.avatar_medium?.url_list?.[0] || 
@@ -220,14 +238,16 @@ function parseDouyinVideos(data: any): FetchVideosResult {
 
 export async function fetchDouyinUserProfile(query: string): Promise<UnifiedUserProfile> {
     const apiKey = await getApiKey();
-    const secUserId = extractSecUserId(query);
+    const secUserId = await extractSecUserId(query, apiKey);
     if (!secUserId) throw new Error('无效的抖音用户链接或ID');
     
     const finalUrl = `/api/tikhub/api/v1/douyin/app/v3/handler_user_profile?sec_user_id=${secUserId}`;
     const res = await fetch(finalUrl, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' }});
     
     if (!res.ok) {
-        throw new Error(`抖音请求失败 (${res.status})`);
+        let errText = '';
+        try { errText = await res.text(); } catch(e) {}
+        throw new Error(`抖音请求失败 (${res.status}) ${errText}`);
     }
     
     const data = await res.json();
@@ -235,7 +255,7 @@ export async function fetchDouyinUserProfile(query: string): Promise<UnifiedUser
         throw new Error(data.msg || data.message || '获取博主信息失败');
     }
 
-    return parseDouyinUserProfile(data);
+    return parseDouyinUserProfile(data, secUserId);
 }
 
 function extractHashtagId(input: string): string {
@@ -330,7 +350,7 @@ export async function fetchDouyinVideoComments(awemeId: string, cursor: number |
 
 export async function fetchDouyinVideos(secUserId: string, maxCursor: number | string = 0, sortType: number = 0): Promise<FetchVideosResult> {
     const apiKey = await getApiKey();
-    const finalUrl = `/api/tikhub/api/v1/douyin/web/fetch_user_post_videos?sec_user_id=${secUserId}&max_cursor=${maxCursor}&count=20&sort_type=${sortType}`;
+    const finalUrl = `/api/tikhub/api/v1/douyin/app/v3/fetch_user_post_videos?sec_user_id=${secUserId}&max_cursor=${maxCursor}&count=20&sort_type=${sortType}`;
     
     const res = await fetch(finalUrl, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' }});
     if (!res.ok) {

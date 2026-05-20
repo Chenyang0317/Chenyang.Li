@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, User, Hash, ChevronDown, Sparkles, Zap, ArrowRight, Play, LayoutGrid } from 'lucide-react';
+import { Search, User, Hash, ChevronDown, Sparkles, Zap, ArrowRight, Play, LayoutGrid, ChevronLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { InteractiveDots } from './InteractiveDots';
 import { motion, AnimatePresence } from 'motion/react';
+import { HotSearchSidebar } from './HotSearchSidebar';
 
 interface HomeProps {
-  onSearch: (query: string, mode: 'user' | 'topic', platform: string) => void;
+  onSearch: (query: string, mode: 'user' | 'topic', platform: string, isDirectId?: boolean, isHotSearch?: boolean) => void;
 }
 
 export function HomeView({ onSearch }: HomeProps) {
@@ -14,6 +15,7 @@ export function HomeView({ onSearch }: HomeProps) {
   const [platform, setPlatform] = useState('抖音');
   const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const platforms = ['抖音', 'B站', '小红书', '微博'];
 
@@ -38,13 +40,53 @@ export function HomeView({ onSearch }: HomeProps) {
     return "输入博主主页链接或抖音号...";
   };
 
+  const handleSidebarClick = (topicName: string, selectedPlatform: '抖音' | '微博') => {
+    setQuery(topicName);
+    setMode('topic');
+    setPlatform(selectedPlatform);
+    onSearch(topicName, 'topic', selectedPlatform, false, true);
+  };
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 relative overflow-hidden bg-[#F8FAFC]">
-      <InteractiveDots />
+    <div className="flex-1 flex flex-row min-h-[calc(100vh-80px)] relative overflow-hidden bg-[#F8FAFC]">
+      {/* Sidebar - Desktop Only */}
+      <motion.div 
+        animate={{ width: isSidebarOpen ? 300 : 40 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="hidden lg:flex flex-col border-r border-slate-100 z-50 shrink-0 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] bg-slate-50/50 relative"
+      >
+        <button 
+           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+           className="absolute -right-3.5 top-1/2 -translate-y-1/2 bg-white border border-slate-200 rounded-full p-1 shadow-sm text-slate-400 hover:text-slate-600 hover:shadow-md transition-all z-50 group hover:scale-110"
+        >
+           {isSidebarOpen ? (
+               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+           ) : (
+               <ChevronLeft size={16} className="rotate-180 group-hover:translate-x-0.5 transition-transform" />
+           )}
+        </button>
+        
+        <div className={cn("flex-1 overflow-hidden transition-opacity duration-200 w-[300px]", isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none")}>
+           <HotSearchSidebar onTopicClick={handleSidebarClick} />
+        </div>
+        
+        {!isSidebarOpen && (
+           <div className="absolute inset-x-0 top-0 h-full flex flex-col items-center pt-8 opacity-40 pointer-events-none">
+              <div className="text-slate-500 tracking-[0.4em] font-bold text-xs" style={{ writingMode: 'vertical-rl' }}>
+                  实时热榜
+              </div>
+           </div>
+        )}
+      </motion.div>
       
-      {/* Background ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-1/3 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[80px] pointer-events-none delay-1000" />
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 relative overflow-y-auto">
+        <InteractiveDots />
+        
+        {/* Background ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/3 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[80px] pointer-events-none delay-1000" />
+
       
       <div className="w-full max-w-4xl flex flex-col items-center mt-[-5vh] z-10">
         
@@ -211,6 +253,7 @@ export function HomeView({ onSearch }: HomeProps) {
         </motion.div>
 
       </div>
+    </div>
     </div>
   );
 }

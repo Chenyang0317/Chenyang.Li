@@ -85,13 +85,20 @@ export default function App() {
       setLoadingProfile(true);
       setLoadingVideos(true);
       try {
-        const savedList = await storage.get<UnifiedUserProfile[]>(listKey) || [];
+        let savedList = await storage.get<UnifiedUserProfile[]>(listKey) || [];
+        if (!Array.isArray(savedList)) {
+           console.warn(`[handleLibraryClick] savedList is not an array:`, savedList);
+           savedList = [];
+        }
         const cachedProfile = savedList.find(b => b.platform === platform && b.id === id);
         if (cachedProfile) {
           setProfile(cachedProfile);
         }
-        const cachedVideos = await storage.get<UnifiedVideo[]>(`saved_videos_${platform}_${id}`) || [];
+        let cachedVideos = await storage.get<UnifiedVideo[]>(`saved_videos_${platform}_${id}`) || [];
+        if (!Array.isArray(cachedVideos)) cachedVideos = [];
         setVideos(cachedVideos);
+      } catch (err) {
+        console.error("Failed to load cached library data:", err);
       } finally {
         setLoadingProfile(false);
         setLoadingVideos(false);
@@ -101,7 +108,7 @@ export default function App() {
     }
   };
 
-  const handleSearch = async (queryOrId: string, mode: 'user' | 'topic', platform: string, isDirectId = false) => {
+  const handleSearch = async (queryOrId: string, mode: 'user' | 'topic', platform: string, isDirectId = false, isHotSearch = false) => {
     if (platform !== '抖音' && platform !== 'B站' && platform !== '小红书' && platform !== '微博') {
       alert(`抱歉，目前仅支持抖音、B站、小红书和微博平台数据抓取测试。`);
       return;
@@ -123,6 +130,7 @@ export default function App() {
       return;
     }
 
+    console.log("[handleSearch] Starting search for:", queryOrId, mode, platform);
     setCurrentId(parsedId);
     setCurrentPlatform(platform as PlatformType);
     setProfile(null);
@@ -137,22 +145,35 @@ export default function App() {
     setLoadingProfile(true);
     setErrorProfile(null);
     try {
+      console.log("[handleSearch] Fetching user profile...");
       const profileData = await fetchUserProfile(platform as PlatformType, parsedId, mode);
+      if (mode === 'topic' && isHotSearch) {
+          profileData.isHotTopic = true;
+      }
+      console.log("[handleSearch] Profile fetched successfully:", profileData);
       setProfile(profileData);
+
       
       // Save to local storage for management
       const listKey = mode === 'topic' ? 'saved_topics' : 'saved_bloggers';
-      const savedList = await storage.get<UnifiedUserProfile[]>(listKey) || [];
+      let savedList = await storage.get<UnifiedUserProfile[]>(listKey) || [];
+      if (!Array.isArray(savedList)) {
+         console.warn(`[App.tsx] savedList is not an array:`, savedList);
+         savedList = [];
+      }
       const existingIdx = savedList.findIndex(b => b.platform === profileData.platform && b.id === profileData.id);
       
       if (existingIdx >= 0) {
+         if (savedList[existingIdx].isHotTopic) profileData.isHotTopic = true;
          savedList[existingIdx] = profileData;
       } else {
          savedList.push(profileData);
       }
       await storage.set(listKey, savedList);
+      console.log("[handleSearch] Profile saved to storage");
 
     } catch (err: any) {
+      console.error("[handleSearch] Profile fetch failed:", err);
       setErrorProfile(err.message);
       if (err.message.includes('API Key')) {
         setIsApiKeyModalOpen(true);
@@ -162,7 +183,9 @@ export default function App() {
     }
 
     // Fetch initial videos
+    console.log("[handleSearch] Fetching initial videos...");
     await fetchVideos(platform as PlatformType, parsedId, 0, sortType, false, mode, publishTime);
+    console.log("[handleSearch] Search flow complete.");
   };
 
   const fetchVideos = async (platform: PlatformType, id: string, cursor: number, sort: number, append: boolean = false, currentMode: 'user' | 'topic' = 'user', timeFilter: number = 0) => {
@@ -173,7 +196,8 @@ export default function App() {
       const res = await fetchUserVideos(platform, id, cursor, sort, currentMode, timeFilter); 
       
       // Limit to 30 videos max as per requirements
-      let newVideos = append ? [...videos, ...res.videos] : res.videos;
+      let fetchedVideos = res?.videos || [];
+      let newVideos = append ? [...videos, ...fetchedVideos] : fetchedVideos;
       if (newVideos.length > 30) {
         newVideos = newVideos.slice(0, 30);
       }

@@ -6,6 +6,8 @@ import { formatNumber, cn, getProxiedAvatar } from '../lib/utils';
 import { analyzeMonitorData, MonitorDataResult } from '../lib/gemini';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
+import { useAuth } from './AuthProvider';
+
 interface ManagementViewProps {
   onBloggerClick: (platform: string, id: string, mode: 'view' | 'update', profile?: UnifiedUserProfile) => void;
   selectMode?: boolean;
@@ -13,6 +15,7 @@ interface ManagementViewProps {
 }
 
 export function ManagementView({ onBloggerClick, selectMode, onMatrixSelect }: ManagementViewProps) {
+  const { user } = useAuth();
   const [bloggers, setBloggers] = useState<UnifiedUserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('全部');
@@ -41,7 +44,7 @@ export function ManagementView({ onBloggerClick, selectMode, onMatrixSelect }: M
   useEffect(() => {
     loadBloggers();
     loadCachedMonitorData();
-  }, []);
+  }, [user]);
 
   const loadCachedMonitorData = async () => {
     const cachedMonitorData = await storage.get<Record<string, MonitorDataResult>>('monitorData');
@@ -143,9 +146,19 @@ export function ManagementView({ onBloggerClick, selectMode, onMatrixSelect }: M
 
   const loadBloggers = async () => {
     setLoading(true);
-    const list = await storage.get<UnifiedUserProfile[]>('saved_bloggers') || [];
-    setBloggers(list);
-    setLoading(false);
+    try {
+      const list = await storage.get<UnifiedUserProfile[]>('saved_bloggers') || [];
+      if (Array.isArray(list)) {
+        setBloggers(list);
+      } else {
+        setBloggers([]);
+      }
+    } catch (e) {
+      console.error("Failed to load bloggers:", e);
+      setBloggers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent, platform: string, id: string) => {

@@ -11,6 +11,7 @@ export interface UnifiedUserProfile {
   videoCount: number;
   ipLocation?: string;
   matrixName?: string; // 归属的矩阵名称
+  isHotTopic?: boolean; // 标识是否为热门话题
 }
 
 export interface UnifiedVideo {

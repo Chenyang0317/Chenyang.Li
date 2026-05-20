@@ -27,7 +27,9 @@ async function extractSecUserId(input: string, apiKey: string): Promise<string> 
                     headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' }
                 });
                 if (res.ok) {
-                    const data = await res.json();
+                    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
                     if (data?.data && typeof data.data === 'string') return data.data;
                 }
             } catch (e) {}
@@ -163,15 +165,28 @@ export async function fetchDouyinHashtagVideos(keyword: string, cursor: number |
         if (!res.ok) {
             let errDesc = '';
             try {
-                const errObj = await res.json();
+                const contentType = res.headers.get('content-type') || '';
+                const text = await res.text();
+                if (contentType.includes('text/html') || text.trim().startsWith('<')) {
+                    throw new Error('HTML Response');
+                }
+                const errObj = JSON.parse(text);
                 errDesc = JSON.stringify(errObj);
             } catch(e) {
                 errDesc = await res.text();
             }
-            throw new Error(`抖音搜索请求失败 (${res.status}): ${errDesc}`);
+            throw new Error(`抖音搜索请求失败 (${res.status}): ${errDesc.substring(0, 50)}`);
         }
         
-        const data = await res.json();
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+            const errText = await res.text();
+            throw new Error(`服务器返回了非预期的 HTML (可能请求被拦截或 Vite 兜底): ${errText.substring(0, 100)}`);
+        }
+        
+        const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
         if (data.code !== 200 && data.status_code !== 0 && data.code !== 0) {
            throw new Error(data.msg || data.message || '获取搜索视频列表失败');
         }
@@ -250,7 +265,9 @@ export async function fetchDouyinUserProfile(query: string): Promise<UnifiedUser
         throw new Error(`抖音请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.status_code !== 0 && data.code !== 0) {
         throw new Error(data.msg || data.message || '获取博主信息失败');
     }
@@ -285,7 +302,9 @@ export async function fetchDouyinHashtagProfile(query: string): Promise<UnifiedU
         const res = await fetch(finalUrl, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' }});
         
         if (res.ok) {
-            const data = await res.json();
+            const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
             if (data.code === 200 || data.status_code === 0 || data.code === 0) {
                 const chInfo = data.data?.ch_info || data.ch_info || {};
                 return {
@@ -327,7 +346,9 @@ export async function fetchDouyinVideoComments(awemeId: string, cursor: number |
         throw new Error(`抖音请求失败 (${res.status})`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.status_code !== 0 && data.code !== 0) {
         throw new Error(data.msg || data.message || '获取评论列表失败');
     }
@@ -357,7 +378,9 @@ export async function fetchDouyinVideos(secUserId: string, maxCursor: number | s
         throw new Error(`抖音请求失败 (${res.status})`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.status_code !== 0 && data.code !== 0) {
        throw new Error(data.msg || data.message || '获取视频列表失败');
     }

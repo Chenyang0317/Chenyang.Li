@@ -220,7 +220,9 @@ export async function fetchXiaohongshuUserProfile(userId: string): Promise<Unifi
         throw new Error(`小红书主页请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.code !== 0 && data.status_code !== 0) {
         throw new Error(data.msg || data.message || '获取博主信息失败');
     }
@@ -256,7 +258,9 @@ export async function fetchXiaohongshuVideos(userId: string, cursor: string = ''
         throw new Error(`小红书视频请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.code !== 0 && data.status_code !== 0) {
        throw new Error(data.msg || data.message || '获取笔记列表失败');
     }
@@ -284,7 +288,9 @@ export async function fetchXiaohongshuVideoComments(noteId: string, cursor: stri
         throw new Error(`小红书请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.code !== 0 && data.status_code !== 0) {
        throw new Error(data.msg || data.message || '获取评论列表失败');
     }
@@ -350,7 +356,9 @@ export async function fetchXiaohongshuHashtagVideos(keyword: string, cursor: str
         throw new Error(`小红书搜索请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.code !== 0 && data.status_code !== 0) {
        throw new Error(data.msg || data.message || '获取话题笔记失败');
     }

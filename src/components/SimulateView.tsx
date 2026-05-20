@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import { UnifiedUserProfile } from '../lib/platforms';
 import { analyzePlatformInsight, simulateTrafficPerformance, SimulationResult } from '../lib/gemini';
 import { storage } from '../lib/storage';
+import { useAuth } from './AuthProvider';
 
 interface UploadZoneProps {
   label: string;
@@ -112,6 +113,7 @@ export function SimulateView({
   selectedMatrix?: { matrixName: string, members: UnifiedUserProfile[] } | null, 
   onSelectMatrix?: () => void 
 }) {
+  const { user } = useAuth();
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [docText, setDocText] = useState('');
   const [budget, setBudget] = useState<number | string>(1000);
@@ -152,7 +154,7 @@ export function SimulateView({
       setDocText('');
       setResult(null);
     }
-  }, [selectedMatrix]);
+  }, [selectedMatrix, user]);
 
   useEffect(() => {
     if (selectedMatrix) {

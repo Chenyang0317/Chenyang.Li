@@ -3,12 +3,14 @@ import { UnifiedUserProfile, fetchUserProfile, fetchUserVideos, PlatformType } f
 import { storage } from '../lib/storage';
 import { Hash, Search, X, Loader2 } from 'lucide-react';
 import { formatNumber, cn, getProxiedAvatar } from '../lib/utils';
+import { useAuth } from './AuthProvider';
 
 interface TopicManagementViewProps {
   onTopicClick: (platform: string, id: string, mode: 'view' | 'update') => void;
 }
 
 export function TopicManagementView({ onTopicClick }: TopicManagementViewProps) {
+  const { user } = useAuth();
   const [topics, setTopics] = useState<UnifiedUserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('全部');
@@ -18,13 +20,23 @@ export function TopicManagementView({ onTopicClick }: TopicManagementViewProps) 
 
   useEffect(() => {
     loadTopics();
-  }, []);
+  }, [user]);
 
   const loadTopics = async () => {
     setLoading(true);
-    const list = await storage.get<UnifiedUserProfile[]>('saved_topics') || [];
-    setTopics(list);
-    setLoading(false);
+    try {
+      const list = await storage.get<UnifiedUserProfile[]>('saved_topics') || [];
+      if (Array.isArray(list)) {
+        setTopics(list);
+      } else {
+        setTopics([]);
+      }
+    } catch (e) {
+      console.error("Failed to load topics:", e);
+      setTopics([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent, platform: string, id: string) => {
@@ -47,6 +59,9 @@ export function TopicManagementView({ onTopicClick }: TopicManagementViewProps) 
         const existingIdx = savedList.findIndex(t => t.platform === profileData.platform && t.id === profileData.id);
         
         if (existingIdx >= 0) {
+            if (savedList[existingIdx].isHotTopic) {
+                profileData.isHotTopic = true;
+            }
             savedList[existingIdx] = profileData;
         } else {
             savedList.push(profileData);
@@ -159,8 +174,9 @@ export function TopicManagementView({ onTopicClick }: TopicManagementViewProps) 
                     </div>
                   </div>
                   <div className="min-w-0 w-full">
-                    <h3 className="text-[10px] md:text-sm font-black text-slate-900 truncate group-hover:text-purple-600 transition-colors">
-                      {topic.nickname || '未知话题'}
+                    <h3 className={cn("text-[10px] md:text-sm font-black truncate transition-colors flex items-center justify-center gap-1", topic.isHotTopic ? "text-red-500 group-hover:text-red-600" : "text-slate-900 group-hover:text-purple-600")}>
+                      {topic.isHotTopic && <span className="text-red-500 font-bold" title="热门话题">🔥</span>}
+                      <span className="truncate">{topic.nickname || '未知话题'}</span>
                     </h3>
                   </div>
                 </div>

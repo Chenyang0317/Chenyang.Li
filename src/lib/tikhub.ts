@@ -1,6 +1,6 @@
 import { storage } from './storage';
 
-const API_BASE = 'https://api.tikhub.io';
+const API_BASE = '/api/tikhub';
 
 async function getApiKey(): Promise<string> {
     const key = await storage.get<string>('tikhub_api_key');
@@ -85,6 +85,41 @@ export async function fetchUserVideos(secUserId: string, maxCursor: number = 0, 
         hasMore: actualData.has_more === 1 || actualData.has_more === true,
         nextCursor: actualData.max_cursor || 0
     };
+}
+
+export async function fetchHotSearchList(platform: '抖音' | '微博'): Promise<any[]> {
+    if (platform === '抖音') {
+        const apiKey = await getApiKey();
+        const url = `${API_BASE}/api/v1/douyin/app/v3/fetch_hot_search_list`;
+        const res = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Accept': 'application/json'
+            }
+        });
+        if (!res.ok) throw new Error(`获取抖音榜单失败: ${res.statusText}`);
+        const data = await res.json();
+        if (data.code !== 200 && data.status_code !== 0 && data.code !== 0) {
+            throw new Error(data.msg || data.message || `获取抖音榜单失败`);
+        }
+        const actualData = data.data || data;
+        return actualData.data?.word_list || actualData.word_list || [];
+    } else if (platform === '微博') {
+        // Use our custom proxy hitting direct public API for better reliability and formats
+        const res = await fetch('/api/weibo-hot');
+        if (!res.ok) throw new Error(`获取微博榜单失败: ${res.statusText}`);
+        const data = await res.json();
+        
+        // Structure is data: { realtime: [...] }
+        if (data && data.data && data.data.realtime && Array.isArray(data.data.realtime)) {
+             return data.data.realtime.filter((item: any) => {
+                 // 剔除广告等占位
+                 return item.is_ad !== 1;
+             });
+        }
+        return [];
+    }
+    return [];
 }
 
 export async function fetchUserProfile(secUserId: string): Promise<TikHubUserProfile> {

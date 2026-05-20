@@ -5,6 +5,14 @@
       "destination": "https://api.tikhub.io/$1"
     },
     {
+      "source": "/api/atypica/(.*)",
+      "destination": "https://api.atypica.ai/$1"
+    },
+    {
+      "source": "/api/weibo-public/(.*)",
+      "destination": "https://m.weibo.cn/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

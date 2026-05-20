@@ -198,10 +198,24 @@ export async function fetchWeiboHashtagVideos(keyword: string, cursor: string | 
     });
     
     if (!res.ok) {
-        throw new Error(`微博搜索失败 (${res.status})`);
+        let errText = '';
+        try { errText = await res.text(); } catch(e) {}
+        throw new Error(`微博搜索失败 (${res.status}) ${errText.substring(0, 50)}`);
     }
     
-    const data = await res.json();
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+        const errText = await res.text();
+        throw new Error(`服务器返回了非预期的 HTML (可能请求被拦截或 Vite 兜底): ${errText.substring(0, 100)}`);
+    }
+    
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
+    if (data.code !== 200 && data.code !== 0 && data.status_code !== 0) {
+        throw new Error(data.message || data.msg || data.detail?.message || `微博搜索失败: Tikhub返回异常状态码`);
+    }
+
     const itemsContainer = data.data?.cards || data.data?.items || data.cards || [];
     
     // Some Weibo search APIs return items directly in data.items or data.cards
@@ -291,7 +305,9 @@ export async function fetchWeiboUserProfile(query: string): Promise<UnifiedUserP
         throw new Error(`微博请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error(`平台接口返回异常数据格式（可能触发了防爬拦截或代理失效）：\n${text.slice(0, 100)}...`); }
     return parseWeiboUserProfile(data, uid);
 }
 
@@ -314,7 +330,9 @@ export async function fetchWeiboVideos(uid: string, cursor: string = '0', sortTy
         throw new Error(`微博请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.code !== 0 && data.status_code !== 0) {
        throw new Error(data.msg || data.message || '获取视频列表失败');
     }
@@ -342,7 +360,9 @@ export async function fetchWeiboVideoComments(mid: string, cursor: string = '', 
         throw new Error(`微博评论请求失败 (${res.status}) ${errText}`);
     }
     
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('平台接口返回非预期格式（可能触发了防爬拦截，或代理配置失效）：\n' + text.slice(0, 100) + '...'); }
     if (data.code !== 200 && data.code !== 0 && data.status_code !== 0) {
        throw new Error(data.msg || data.message || '获取评论列表失败');
     }

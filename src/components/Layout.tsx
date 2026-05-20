@@ -103,7 +103,6 @@ interface ApiKeyModalProps {
 }
 
 export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
-  const { user } = useAuth();
   const [tikhubKey, setTikhubKey] = useState('');
   const [atypicaKey, setAtypicaKey] = useState('');
   const [bochaKey, setBochaKey] = useState('');
@@ -128,8 +127,6 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   }, [isOpen]);
 
   if (!isOpen) return null;
-  
-  const hasPermission = user?.email === '2530313@tongji.edu.cn' || user?.email === 'zhaokai@tezign.com';
 
   const handleSave = async () => {
     await storage.set('tikhub_api_key', tikhubKey);
@@ -151,15 +148,8 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
           <p className="text-sm text-slate-500 mt-1 font-medium">配置您的外部服务 API 密钥以启用高级功能。</p>
         </div>
         
-        {!hasPermission ? (
-          <div className="py-8 text-center text-slate-500 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="font-bold text-lg text-slate-700 mb-2">没有权限</p>
-            <p className="text-sm">您当前的账号 ({user?.email || '未登录'}) 无权查看或修改系统接口设置。</p>
-            <p className="text-sm mt-1 text-slate-400">请联系管理员获取权限。</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-5">
-            <div className="space-y-2">
+        <div className="flex flex-col gap-5">
+          <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-wider">TikHub API Key (视频抓取)</label>
               <input
                 type="password"
@@ -203,12 +193,10 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
               />
             </div>
           </div>
-        )}
 
         <div className="flex justify-between items-center mt-2">
-          {hasPermission ? (
-            <button 
-              onClick={async () => {
+          <button 
+            onClick={async () => {
                 if (!feishuWebhook) return alert("请先填写Webhook URL");
                 await storage.set('feishu_webhook_url', feishuWebhook);
                 const originalSaved = saved;
@@ -222,7 +210,6 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
               <Activity size={14} />
               <span>模拟定时任务发送测试</span>
             </button>
-          ) : <div></div>}
 
           <div className="flex justify-end gap-3">
             <button 
@@ -231,14 +218,12 @@ export function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
             >
               取消
             </button>
-            {hasPermission && (
-              <button 
-                onClick={handleSave}
-                className="px-8 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
-              >
-                {saved ? '配置已保存！' : '保存配置'}
-              </button>
-            )}
+            <button 
+              onClick={handleSave}
+              className="px-8 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
+            >
+              {saved ? '配置已保存！' : '保存配置'}
+            </button>
           </div>
         </div>
       </div>
